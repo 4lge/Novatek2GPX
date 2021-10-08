@@ -2,7 +2,8 @@ This tool modifies a dashcam player software to be able to extract GPX data from
 
 I use it with a wolfbox dashcam. It seems to be based on Novatek hardware.
 
-* INSTALL:
+INSTALL:
+========
 
 Copy Openstreetmap.html into the "setup" Folder of your CAR DVR Player Installation, usually
 
@@ -11,7 +12,7 @@ Copy Openstreetmap.html into the "setup" Folder of your CAR DVR Player Installat
 This will overwrite the original File, so backup it if you want to be able to revert this without reinstallation.
 
 USAGE:
-
+======
 
 + enter the date/time stamp as seen in the video into the field labeled S: in the form yyyy/mm/dd hh:mm:ss, 
 + choose the snippet length in minutes (default 3) in field D:
