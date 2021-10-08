@@ -10,11 +10,11 @@ Copy Openstreetmap.html into the "setup" Folder of your CAR DVR Player Installat
 
 This will overwrite the original File, so backup it if you want to be able to revert this without reinstallation.
 
-* USAGE:
+USAGE:
 
 
-+ Enter the date/time stamp seen in the video into the filed labeled S: in the form yyyy/mm/dd hh:mm:ss, 
-+ choose the snippet length in minites (default 3) in field D:
++ enter the date/time stamp as seen in the video into the field labeled S: in the form yyyy/mm/dd hh:mm:ss, 
++ choose the snippet length in minutes (default 3) in field D:
 + then press "Save"
 
 Now the GPX content appears in the text area and is already selected, press Ctrl-C, go to your 
