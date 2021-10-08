@@ -1,0 +1,245 @@
+﻿
+<!DOCTYPE html>
+<html>
+<head>
+    <title>GPS TRACE</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" type="image/x-icon" href="docs/images/favicon.ico" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css" integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ==" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js" integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og==" crossorigin=""></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js" integrity="sha512-csNcFYJniKjJxRWRV1R7fvnXrycHP6qDR21mgz1ZP55xY5d+aHLfo9/FcGDQLfn2IfngbAHd8LdfsagcCqgTcQ==" crossorigin=""></script>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        #map {
+            width: 400px;
+            height: 200px;
+        }
+    </style>
+
+
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+    </style>
+</head>
+<body style="margin:0px; padding:0px;overflow:hidden;overflow-x:hidden;overflow-y:hidden;">
+    <div id="map"></div>
+    <div id="mapid" style="width: 100%; height: 100%;"></div>
+</body>
+</html>
+<script type="text/javascript">
+    window.onload = function () {
+        initMap();
+        removeDiv();
+    }
+    var markers;
+    var map;
+    var runmarker = 0;
+    var pf2 = 0;
+    var starticon = 0;
+    var vlayer = 0;
+
+    var yMax = 0;
+    var xMax = 0;
+    var nPosIndex = 0;
+    var lineArr;
+    var startmarker = 0;
+    var clonLat;
+    var viewSpotLayer;
+
+    var saveDiv;
+
+    var startIcon = L.icon({
+        iconUrl: 'start.png',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+    });
+
+    var runIcon = L.icon({
+        iconUrl: 'run.png',
+        iconSize: [32, 32],
+        iconAnchor: [16, 32],
+    });
+
+    function initMap() {
+        zoom = 15;
+        map = L.map('map').setView([22.707809, 114.035204], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 17,
+            attribution: 'iog',
+            id: 'mapbox.streets',
+        }).addTo(map);
+
+        startmarker = L.marker([22.707809, 114.035204], { icon: startIcon }).addTo(map)
+        runmarker = L.marker([22.707809, 114.035204], { icon: runIcon }).addTo(map)
+
+        viewSpotLayer = new L.featureGroup([]);
+        map.addLayer(viewSpotLayer);
+        map.invalidateSize(true);
+    }
+</script>
+<script type="text/javascript">
+    function SetPoistion(longitude, latitude) {
+        var latlng = L.latLng(latitude, longitude);
+        lineArr.push(latlng);
+        if (nPosIndex == 0) {
+            startmarker.setLatLng([latitude, longitude]);
+            runmarker.setLatLng([latitude, longitude]);
+        }
+        nPosIndex++;
+    }
+
+    function Center(longitude, latitude) {
+        map.setView([latitude, longitude], map.getZoom());
+    }
+    function Line() {
+        var nRet = new Array();
+        nRet[0] = nPosIndex;
+        var line = new L.polyline(lineArr, { color: 'red', opacity: '0.8', weight: '3' }).addTo(viewSpotLayer);
+        return nRet;
+    }
+
+    function Clear() {
+        lineArr = null;
+        lineArr = new Array();
+        nPosIndex = 0;
+        viewSpotLayer.clearLayers()
+    }
+
+    function Move(longitude, latitude) {
+        runmarker.setLatLng([latitude, longitude]);
+    }
+    function SetMaxXY(x, y) {
+        xMax = x;
+        yMax = y;
+    }
+
+    function Test() {
+    }
+
+    function printstr() {
+        alert("123");
+    }
+
+    function pad2digits(str){
+        if(str.length==1)
+            str='0'+str;
+        return str;
+    }
+
+    function gpxTime(tm){
+        // format time as "yyyy-mm-ddThh:mm:ssZ"
+        return tm.getFullYear().toString()+'-'+pad2digits(tm.getMonth().toString())+'-'+pad2digits(tm.getDate().toString())+'T'+pad2digits(tm.getHours().toString())+':'+pad2digits(tm.getMinutes().toString())+':'+pad2digits(tm.getSeconds().toString())+'Z';
+    }
+
+    // Albrecht Gebhardt <alge@algepop.net>:
+    // add a hack to extract coordinates as GPX file:
+    
+    function saveTrack(){
+        //alert(lineArr);
+        var inputs = document.getElementsByClassName("inputs");
+        var duration=0;
+        var start="";
+
+        for (var i=0; i < inputs.length; i++ ) {
+            if(inputs[i].name=="duration")
+                duration=inputs[i].value;
+            if(inputs[i].name=="start")
+                start=inputs[i].value;
+        }
+        //alert("Start:"+start+"\nDuration"+duration);
+
+
+        if(!lineArr){
+            alert('no GPX data loaded');
+            return(0);
+        }
+        nPts=lineArr.length;
+        if(nPts==0){
+            alert(nPts+' GPS points');
+            return(0);
+        }
+        timeStep=parseFloat(duration)*60.0/parseFloat(nPts);
+        // alert(timeStep*1000);
+        // FIXME: improve regexp for date to exclude nonsense month, hours etc
+        var arr = start.match(/([0-9]{4})\/([0-9]{2})\/([0-9]{2}) ([0-9]{2}):([0-9]{2}):([0-9]{2})/);
+        if(!arr){
+            alert('no start date given or wrong format');
+            return(0);
+        }
+        var year=arr[1];
+        var month=arr[2];
+        var day=arr[3];
+        var hour=arr[4];
+        var minute=arr[5];
+        var second=arr[6];
+
+        timeStart=new Date(year,month,day,hour,minute,second,0);
+        //alert(timeStart);
+
+        var gpx='<?xml version="1.0" encoding="utf-8"?>';
+        gpx +='<gpx creator="PC GPS Player" version="1.1" xsi:schemaLocation="http://www.topgrafix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/WaypointExtension/v1 http://www8.garmin.com/xmlschemas/WaypointExtensionv1.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www8.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/ActivityExtension/v1 http://www8.garmin.com/xmlschemas/ActivityExtensionv1.xsd http://www.garmin.com/xmlschemas/AdventuresExtensions/v1 http://www8.garmin.com/xmlschemas/AdventuresExtensionv1.xsd http://www.garmin.com/xmlschemas/PressureExtension/v1 http://www.garmin.com/xmlschemas/PressureExtensionv1.xsd http://www.garmin.com/xmlschemas/TripExtensions/v1 http://www.garmin.com/xmlschemas/TripExtensionsv1.xsd http://www.garmin.com/xmlschemas/TripMetaDataExtensions/v1 http://www.garmin.com/xmlschemas/TripMetaDataExtensionsv1.xsd http://www.garmin.com/xmlschemas/ViaPointTransportationModeExtensions/v1 http://www.garmin.com/xmlschemas/ViaPointTransportationModeExtensionsv1.xsd http://www.garmin.com/xmlschemas/CreationTimeExtension/v1 http://www.garmin.com/xmlschemas/CreationTimeExtensionsv1.xsd http://www.garmin.com/xmlschemas/AccelerationExtension/v1 http://www.garmin.com/xmlschemas/AccelerationExtensionv1.xsd http://www.garmin.com/xmlschemas/PowerExtension/v1 http://www.garmin.com/xmlschemas/PowerExtensionv1.xsd http://www.garmin.com/xmlschemas/VideoExtension/v1 http://www.garmin.com/xmlschemas/VideoExtensionv1.xsd" xmlns="http://www.topografix.com/GPX/1/1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:wptx1="http://www.garmin.com/xmlschemas/WaypointExtension/v1" xmlns:gpxtrx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xmlns:trp="http://www.garmin.com/xmlschemas/TripExtensions/v1" xmlns:adv="http://www.garmin.com/xmlschemas/AdventuresExtensions/v1" xmlns:prs="http://www.garmin.com/xmlschemas/PressureExtension/v1" xmlns:tmd="http://www.garmin.com/xmlschemas/TripMetaDataExtensions/v1" xmlns:vptm="http://www.garmin.com/xmlschemas/ViaPointTransportationModeExtensions/v1" xmlns:ctx="http://www.garmin.com/xmlschemas/CreationTimeExtension/v1" xmlns:gpxacc="http://www.garmin.com/xmlschemas/AccelerationExtension/v1" xmlns:gpxpx="http://www.garmin.com/xmlschemas/PowerExtension/v1" xmlns:vidx1="http://www.garmin.com/xmlschemas/VideoExtension/v1">\n';
+        gpx +='<metadata> <link href="http://www.garmin.com"> <text>Garmin International</text> </link>\n';
+        gpx +='<time>'+gpxTime(timeStart)+'</time>\n';
+        
+        var lats = []; var lngs = [];
+        for (var i = 0; i < nPts; i++)  {
+            lats.push(lineArr[i].lat);
+            lngs.push(lineArr[i].lng);
+        }
+        var minlat = Math.min.apply(null, lats),
+            maxlat = Math.max.apply(null, lats);
+        var minlng = Math.min.apply(null, lngs),
+            maxlng = Math.max.apply(null, lngs);
+        gpx +='<bounds maxlat="'+maxlat+'" maxlon="'+maxlng+'" minlat="'+minlat+'" minlon="'+minlng+'" />\n';
+        gpx +='</metadata>\n';
+
+        gpx+='<trk>\n';
+        gpx+='<trkseg>\n';
+        for(i = 0; i < nPts; i++) {
+            gpx+='<trkpt lat="'+lineArr[i].lat+'" lon="'+lineArr[i].lng+'">\n';
+            timeStart.setMilliseconds( timeStart.getMilliseconds() + timeStep*1000 );
+            gpx+='<time>'+gpxTime(timeStart)+'</time>\n';
+            gpx+='</trkpt>\n';
+        }
+        gpx+='</trkseg>\n';
+        gpx+='</trk>\n';
+        gpx+='</gpx>\n';
+        //alert(gpx);
+        // saveAs from FileSaver does not work here (sandboxed environment without local file access??)
+        // so resort to a copy paste solution:
+        
+        var gpxArea = document.getElementsByClassName("gpxArea");
+        gpxArea[0].value=gpx;
+        //alert(gpxArea[0]);
+        gpxArea[0].select();
+        // seems not to work:
+        document.execCommand("copy");
+        // so do it manually:
+        alert("GPX selected, press Ctrl-C next and paste and save as GPX file manually via some text editor");
+        
+    }
+
+    function removeDiv() {
+        var arr = document.getElementsByClassName("leaflet-control-attribution leaflet-control");
+        for (i = 0; i < arr.length; i++) {
+            if (arr[i] != null){
+                //arr[i].parentNode.removeChild(arr[i]);
+                saveDiv=arr[i];
+                arr[i].innerHTML="<form id=\"saveFrm\">S:<input name=\"start\" value=\"yyyy/mm/dd hh:mm:ss\" size=\"17\" class=\"inputs\"/> D:<input name=\"duration\" value=\"3\" style=\"width:15px;\" class=\"inputs\"/> min  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"javascript:saveTrack();\">Save</a><br/> <textarea class=\"gpxArea\" name=\"gpx\" style=\"width:270px;height:36px;\"></textarea></form>";
+            }
+        }
+    }
+</script>
